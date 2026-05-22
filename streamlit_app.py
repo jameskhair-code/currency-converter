@@ -12,6 +12,10 @@ If the internet is unavailable, the app falls back to built-in
 approximate rates so it never fully breaks.
 """
 
+import base64
+from email.utils import parsedate_to_datetime
+from pathlib import Path
+
 import streamlit as st
 import requests
 
@@ -65,14 +69,35 @@ def fmt(value, decimals):
     return f"{value:,.{decimals}f}"
 
 
+def friendly_time(raw):
+    """Turn 'Fri, 22 May 2026 00:02:32 +0000' into 'Fri, May 22 · 12:02 AM UTC'."""
+    if not raw:
+        return ""
+    try:
+        dt = parsedate_to_datetime(raw)
+        date_part = dt.strftime("%a, %b %d").replace(" 0", " ")  # drop leading 0 on day
+        time_part = dt.strftime("%I:%M %p").lstrip("0")           # drop leading 0 on hour
+        return f"{date_part} · {time_part} UTC"
+    except Exception:
+        return raw  # if parsing fails, just show the raw string
+
+
 # ----------------------------------------------------------------------
 # 2. ARTWORK
 # ----------------------------------------------------------------------
 
-# The brand bear — a PNG served from ./static/ via Streamlit's static
-# file server (enabled in .streamlit/config.toml). To swap the bear,
-# just drop a new bear.png in the static/ folder.
-BEAR_IMG = "/app/static/bear.png"
+# The brand bear lives in ./static/bear.png. We read it at startup,
+# base64-encode it, and inline it as a data: URI in the brand <img>.
+# This avoids Streamlit's static-serving quirks and ignores MIME
+# extension mismatches — the file is JPEG bytes despite the .png name.
+@st.cache_data(show_spinner=False)
+def load_bear_data_uri():
+    p = Path(__file__).parent / "static" / "bear.png"
+    if not p.exists():
+        return ""
+    return "data:image/jpeg;base64," + base64.b64encode(p.read_bytes()).decode()
+
+BEAR_IMG = load_bear_data_uri()
 
 PAW_SVG = """
 <svg viewBox="0 0 24 24" width="15" height="15" xmlns="http://www.w3.org/2000/svg">
@@ -363,7 +388,8 @@ st.write("")
 foot_left, foot_right = st.columns([3, 1])
 with foot_left:
     if data["live"]:
-        status_label = f"Live rates · {data['updated']}" if data["updated"] else "Live rates · open.er-api.com"
+        when = friendly_time(data["updated"])
+        status_label = f"Live rates · {when}" if when else "Live rates · open.er-api.com"
         status_html = (
             f'<div class="status-line">'
             f'<span class="status-dot live"></span>'
