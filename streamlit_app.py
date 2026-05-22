@@ -72,7 +72,7 @@ def fmt(value, decimals):
 # A tiny 8-bit-feeling bear built from Unicode block characters.
 # Rendered as monospace text inside the brand badge.
 BEAR_ASCII = "\
-▟▙ ▟▙\n\
+ ▄ ▄ \n\
 ▐●ᴥ●▌\n\
  ▀▀▀"
 
