@@ -1,11 +1,11 @@
 """
-Currency Converter — Streamlit edition
---------------------------------------
-A polished take on a classic first project.
+Rybear's Currency Converter — Streamlit edition
+-----------------------------------------------
+A polished currency converter, made special for Ryleigh ("Rybear").
 
-Run it with:
+Run it locally with:
     pip install streamlit requests
-    streamlit run currency_converter.py
+    streamlit run streamlit_app.py
 
 Live rates come from open.er-api.com (no API key needed).
 If the internet is unavailable, the app falls back to built-in
@@ -19,7 +19,8 @@ import requests
 # 1. CONFIG & DATA
 # ----------------------------------------------------------------------
 
-st.set_page_config(page_title="Currency Converter", page_icon="💱", layout="centered")
+st.set_page_config(page_title="Rybear's Currency Converter",
+                   page_icon="🐻", layout="centered")
 
 # code -> display name, symbol, and how many decimals make sense
 CURRENCIES = {
@@ -65,7 +66,41 @@ def fmt(value, decimals):
 
 
 # ----------------------------------------------------------------------
-# 2. STYLING (a little CSS to lift the default Streamlit look)
+# 2. ARTWORK  (a friendly bear, drawn as SVG so it renders everywhere)
+# ----------------------------------------------------------------------
+
+BEAR_SVG = """
+<svg viewBox="0 0 120 112" width="58" height="54" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="30" cy="30" r="20" fill="#B07A3E"/>
+  <circle cx="90" cy="30" r="20" fill="#B07A3E"/>
+  <circle cx="30" cy="30" r="10" fill="#E7C893"/>
+  <circle cx="90" cy="30" r="10" fill="#E7C893"/>
+  <circle cx="60" cy="64" r="42" fill="#B07A3E"/>
+  <ellipse cx="60" cy="80" rx="24" ry="19" fill="#E7C893"/>
+  <circle cx="44" cy="58" r="6.6" fill="#2E2418"/>
+  <circle cx="76" cy="58" r="6.6" fill="#2E2418"/>
+  <circle cx="46.5" cy="55.4" r="2.5" fill="#FFFFFF"/>
+  <circle cx="78.5" cy="55.4" r="2.5" fill="#FFFFFF"/>
+  <ellipse cx="60" cy="72" rx="8" ry="6" fill="#2E2418"/>
+  <circle cx="57.4" cy="69.8" r="1.9" fill="#FFFFFF" opacity="0.55"/>
+  <path d="M60 78 Q60 86 51 87 M60 78 Q60 86 69 87"
+        stroke="#2E2418" stroke-width="2.7" fill="none" stroke-linecap="round"/>
+</svg>
+"""
+
+PAW_SVG = """
+<svg viewBox="0 0 24 24" width="15" height="15" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="12" cy="16.5" rx="6" ry="5" fill="#B07A3E"/>
+  <circle cx="5.5" cy="9.5" r="2.5" fill="#B07A3E"/>
+  <circle cx="11" cy="6.8" r="2.7" fill="#B07A3E"/>
+  <circle cx="16.8" cy="8.6" r="2.6" fill="#B07A3E"/>
+  <circle cx="20" cy="13.4" r="2.2" fill="#B07A3E"/>
+</svg>
+"""
+
+
+# ----------------------------------------------------------------------
+# 3. STYLING (a little CSS to lift the default Streamlit look)
 # ----------------------------------------------------------------------
 
 st.markdown("""
@@ -74,8 +109,6 @@ st.markdown("""
 
 .stApp { background: #EBE3D2; }
 html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-
-/* Headings in a characterful serif */
 h1, h2, h3 { font-family: 'Fraunces', serif !important; color: #26221A; }
 
 /* Buttons — warm green, consistent across the app */
@@ -92,43 +125,52 @@ div.stButton > button:hover {
     color: #386C4F;
 }
 
-/* Input + selectbox rounding */
 div[data-baseweb="select"] > div, .stNumberInput div[data-baseweb="input"] {
     border-radius: 12px !important;
 }
 
-/* The eyebrow label above the title */
+/* Brand header — bear badge + title */
+.brand { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
+.bear-badge {
+    background: #FBF8F0; border: 1.5px solid #E0D6BF; border-radius: 20px;
+    padding: 9px 9px 5px 9px; display: flex; flex-shrink: 0;
+    box-shadow: 0 8px 20px -10px rgba(38,34,26,0.30);
+}
 .eyebrow {
     color: #386C4F; font-size: 12px; font-weight: 700;
     letter-spacing: 0.14em; text-transform: uppercase;
-    display: flex; align-items: center; gap: 8px; margin-bottom: 2px;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 3px;
 }
 .eyebrow .bar { width: 22px; height: 2px; background: #386C4F; display: inline-block; }
+.app-title {
+    font-family: 'Fraunces', serif; font-size: 33px; font-weight: 600;
+    color: #26221A; line-height: 1.06; letter-spacing: -0.02em;
+}
 
 /* The big green result card */
-.result-card {
-    background: #2A5440; border-radius: 16px;
-    padding: 22px 24px; margin: 6px 0 4px 0;
-}
+.result-card { background: #2A5440; border-radius: 16px; padding: 22px 24px; margin: 6px 0 4px 0; }
 .result-label {
     color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700;
     letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px;
 }
-.result-amount {
-    font-family: 'Fraunces', serif; color: #ffffff;
-    font-size: 40px; font-weight: 600; line-height: 1;
-}
+.result-amount { font-family: 'Fraunces', serif; color: #fff; font-size: 40px; font-weight: 600; line-height: 1; }
 .result-code { color: rgba(255,255,255,0.7); font-size: 17px; font-weight: 600; }
 .result-rate {
     margin-top: 10px; font-family: 'JetBrains Mono', monospace;
     font-size: 12px; color: rgba(255,255,255,0.6);
+}
+
+/* Footer credit — the little personal touch */
+.credit {
+    text-align: center; margin-top: 16px; color: #7A7160; font-size: 12.5px;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ----------------------------------------------------------------------
-# 3. STATE  (remembers the chosen currencies between clicks)
+# 4. STATE  (remembers the chosen currencies between clicks)
 # ----------------------------------------------------------------------
 
 if "from_cur" not in st.session_state:
@@ -149,12 +191,21 @@ def set_pair(from_code, to_code):
 
 
 # ----------------------------------------------------------------------
-# 4. THE PAGE
+# 5. THE PAGE
 # ----------------------------------------------------------------------
 
-st.markdown('<div class="eyebrow"><span class="bar"></span>Live FX</div>',
-            unsafe_allow_html=True)
-st.title("Currency Converter")
+# --- Brand header: friendly bear + title ------------------------------
+st.markdown(f"""
+<div class="brand">
+    <div class="bear-badge">{BEAR_SVG}</div>
+    <div>
+        <div class="eyebrow"><span class="bar"></span>Live FX</div>
+        <div class="app-title">Rybear's<br>Currency Converter</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.write("")
 
 data = get_rates()
 rates = data["rates"]
@@ -243,3 +294,7 @@ with foot_right:
     if st.button("↻ Refresh", use_container_width=True):
         get_rates.clear()      # drop the cached result
         st.rerun()             # ...and reload the page
+
+# --- The personal touch -----------------------------------------------
+st.markdown(f'<div class="credit">{PAW_SVG}<span>Made with love for Rybear</span></div>',
+            unsafe_allow_html=True)
