@@ -73,6 +73,57 @@ FALLBACK_RATES = {
 }
 
 
+@st.cache_data(ttl=3600)
+def get_history(from_code, to_code, days=30):
+    """Fetch the last `days` of daily rates for from_code -> to_code from
+    Frankfurter. Returns a list of (iso_date, rate) tuples, oldest first,
+    or [] on failure or for the trivial same-currency case."""
+    from datetime import date, timedelta
+    if from_code == to_code:
+        return []
+    end = date.today()
+    start = end - timedelta(days=days + 10)  # extra buffer for weekends/holidays
+    try:
+        url = f"https://api.frankfurter.dev/v1/{start.isoformat()}..{end.isoformat()}"
+        resp = requests.get(url, params={"base": from_code, "symbols": to_code}, timeout=8)
+        data = resp.json()
+        rates_by_day = data.get("rates") or {}
+        series = []
+        for dstr in sorted(rates_by_day.keys()):
+            value = rates_by_day[dstr].get(to_code)
+            if value is not None:
+                series.append((dstr, value))
+        return series[-days:]  # newest `days` business-day entries
+    except Exception:
+        return []
+
+
+def make_sparkline_svg(values, width=240, height=42, color="#386C4F"):
+    """Render a minimal inline SVG sparkline — no axes, no labels — given
+    a non-empty list of numeric values. Returns an SVG string."""
+    if len(values) < 2:
+        return ""
+    lo, hi = min(values), max(values)
+    span = (hi - lo) if hi > lo else 1.0
+    pad = 3
+    inner_w, inner_h = width - 2 * pad, height - 2 * pad
+    step = inner_w / (len(values) - 1)
+    points = [
+        (pad + i * step, pad + inner_h - ((v - lo) / span) * inner_h)
+        for i, v in enumerate(values)
+    ]
+    line = "M " + " L ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+    last_x, last_y = points[-1]
+    return (
+        f'<svg viewBox="0 0 {width} {height}" width="100%" height="{height}" '
+        f'preserveAspectRatio="none">'
+        f'<path d="{line}" stroke="{color}" stroke-width="1.8" fill="none" '
+        f'stroke-linecap="round" stroke-linejoin="round"/>'
+        f'<circle cx="{last_x:.1f}" cy="{last_y:.1f}" r="2.5" fill="{color}"/>'
+        f'</svg>'
+    )
+
+
 @st.cache_data(ttl=3600)  # remember the result for 1 hour so we don't hammer the API
 def get_rates():
     """Fetch the ECB's latest rates from Frankfurter and normalize to USD-base.
@@ -341,6 +392,22 @@ div.stButton > button:focus { box-shadow: 0 0 0 3px rgba(56,108,79,0.18); }
     font-size: 12px; color: rgba(255,255,255,0.72);
 }
 
+/* ---- 30-day sparkline (sits inline under the result card) ---- */
+.sparkline-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 4px 0 4px;
+}
+.sparkline-cap {
+    color: var(--ink-soft); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    flex-shrink: 0;
+}
+.sparkline-svg { flex: 1; line-height: 0; }
+.sparkline-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; font-size: 12px; flex-shrink: 0;
+}
+
 /* ---- Footer credit ---- */
 .credit {
     text-align: center; margin-top: 16px; color: var(--ink-soft); font-size: 12.5px;
@@ -445,6 +512,28 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# --- 30-day sparkline -------------------------------------------------
+# A minimal inline trend line under the result card. Hidden when the
+# series can't be fetched, when the pair is trivial (same currency),
+# or when fewer than two data points are available.
+history = get_history(from_code, to_code, days=30)
+if len(history) >= 2:
+    history_values = [rate for _, rate in history]
+    pct_change = (history_values[-1] - history_values[0]) / history_values[0] * 100
+    is_up = pct_change >= 0
+    spark_color = "#2BA76B" if is_up else "#D97757"
+    arrow = "▲" if is_up else "▼"
+    spark_svg = make_sparkline_svg(history_values, color=spark_color)
+    st.markdown(
+        f'<div class="sparkline-row">'
+        f'  <span class="sparkline-cap">30-day trend</span>'
+        f'  <span class="sparkline-svg">{spark_svg}</span>'
+        f'  <span class="sparkline-pct" style="color:{spark_color};">'
+        f'{arrow} {abs(pct_change):.2f}%</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 # --- Quick pairs ------------------------------------------------------
 st.write("")
