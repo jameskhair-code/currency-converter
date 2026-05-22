@@ -15,9 +15,15 @@ approximate rates so it never fully breaks.
 import base64
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 import requests
+
+# Rybear lives in Salt Lake City — display rate timestamps in her
+# local timezone. America/Denver covers Mountain Time and handles
+# the MDT/MST switch automatically.
+SLC_TZ = ZoneInfo("America/Denver")
 
 # ----------------------------------------------------------------------
 # 1. CONFIG & DATA
@@ -70,14 +76,16 @@ def fmt(value, decimals):
 
 
 def friendly_time(raw):
-    """Turn 'Fri, 22 May 2026 00:02:32 +0000' into 'Fri, May 22 · 12:02 AM UTC'."""
+    """Convert the API's UTC timestamp into Salt Lake City local time.
+    'Fri, 22 May 2026 00:02:32 +0000' -> 'Thu, May 21 · 6:02 PM MDT'.
+    Outside DST it'll read 'MST' — handled automatically by zoneinfo."""
     if not raw:
         return ""
     try:
-        dt = parsedate_to_datetime(raw)
+        dt = parsedate_to_datetime(raw).astimezone(SLC_TZ)
         date_part = dt.strftime("%a, %b %d").replace(" 0", " ")  # drop leading 0 on day
         time_part = dt.strftime("%I:%M %p").lstrip("0")           # drop leading 0 on hour
-        return f"{date_part} · {time_part} UTC"
+        return f"{date_part} · {time_part} {dt.strftime('%Z')}"
     except Exception:
         return raw  # if parsing fails, just show the raw string
 
@@ -393,31 +401,28 @@ for col, (f, t) in zip(cols, quick):
                   on_click=set_pair, args=(f, t),
                   use_container_width=True)
 
-# --- Footer -----------------------------------------------------------
+# --- Footer status ----------------------------------------------------
+# (No refresh button: open.er-api.com updates ~once per day, and
+# Streamlit caches our fetch for an hour. Clicking refresh wouldn't
+# get you fresher numbers, so the button was just noise.)
 st.write("")
-foot_left, foot_right = st.columns([3, 1])
-with foot_left:
-    if data["live"]:
-        when = friendly_time(data["updated"])
-        status_label = f"Live rates · {when}" if when else "Live rates · open.er-api.com"
-        status_html = (
-            f'<div class="status-line">'
-            f'<span class="status-dot live"></span>'
-            f'<span>{status_label}</span>'
-            f'</div>'
-        )
-    else:
-        status_html = (
-            '<div class="status-line">'
-            '<span class="status-dot offline"></span>'
-            '<span>Offline · using built-in fallback rates</span>'
-            '</div>'
-        )
-    st.markdown(status_html, unsafe_allow_html=True)
-with foot_right:
-    if st.button("↻ Refresh", use_container_width=True):
-        get_rates.clear()      # drop the cached result
-        st.rerun()             # ...and reload the page
+if data["live"]:
+    when = friendly_time(data["updated"])
+    status_label = f"Live rates · {when}" if when else "Live rates · open.er-api.com"
+    status_html = (
+        f'<div class="status-line">'
+        f'<span class="status-dot live"></span>'
+        f'<span>{status_label}</span>'
+        f'</div>'
+    )
+else:
+    status_html = (
+        '<div class="status-line">'
+        '<span class="status-dot offline"></span>'
+        '<span>Offline · using built-in fallback rates</span>'
+        '</div>'
+    )
+st.markdown(status_html, unsafe_allow_html=True)
 
 # --- The personal touch -----------------------------------------------
 st.markdown(f'<div class="credit">{PAW_SVG}<span>Rybear Tools Unlimited</span></div>',
