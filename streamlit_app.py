@@ -15,6 +15,7 @@ so it never fully breaks.
 """
 
 import base64
+import zlib
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -157,34 +158,227 @@ def fmt(value, decimals):
     return f"{value:,.{decimals}f}"
 
 
-# Tiers for the "Rybear says…" callout. First entry whose ceiling is
-# greater than the USD-equivalent amount wins. Keep these kid-friendly
-# and concrete — the goal is to translate an abstract number into a
-# mental picture.
+# "Rybear says…" purchasing-power phrase bank.
+#
+# Each tier has a list of universal phrases plus an optional dict of
+# currency-flavored phrases keyed by ISO code. When the converted amount
+# falls into a tier, we build the candidate list = universal + flavor for
+# either the source or target currency, then pick stably based on a hash
+# of (amount, from_code, to_code) — so the phrase varies with input but
+# doesn't flicker on every keystroke.
 RYBEAR_TIERS = [
-    (0.25,       "not even a piece of gum 🍬"),
-    (1,          "a high-five worth of money ✋"),
-    (3,          "a candy bar 🍫"),
-    (10,         "lunch at a food truck 🌮"),
-    (30,         "a movie ticket 🎬"),
-    (80,         "dinner out for two 🍝"),
-    (200,        "a week of groceries 🛒"),
-    (600,        "a new pair of sneakers 👟"),
-    (2_000,      "a weekend getaway ✈️"),
-    (10_000,     "a really nice laptop 💻"),
-    (40_000,     "a used car 🚗"),
-    (200_000,    "a small down payment on a house 🏠"),
-    (5_000_000,  "more money than most people see in a lifetime 🤯"),
+    {
+        "ceiling": 0.25,
+        "universal": [
+            "not even a piece of gum 🍬",
+            "couch-cushion change 🛋️",
+            "smaller than a vending-machine coin 🪙",
+            "barely worth bending down to pick up 🦴",
+            "less than a 1980s payphone call ☎️",
+        ],
+        "by_currency": {},
+    },
+    {
+        "ceiling": 1,
+        "universal": [
+            "a high-five worth of money ✋",
+            "a small candy bar 🍬",
+            "a fortune cookie's worth 🥠",
+            "tip-jar tier 🫙",
+            "what you find in a clean laundry load 🧦",
+        ],
+        "by_currency": {
+            "JPY": ["barely a vending-machine snack in Tokyo 🍡"],
+            "KRW": ["a single triangle kimbap at a Seoul GS25 🍙"],
+        },
+    },
+    {
+        "ceiling": 3,
+        "universal": [
+            "a candy bar 🍫",
+            "two scoops of bulk-bin candy 🍭",
+            "a small-arcade game token 🕹️",
+            "a 7-Eleven hot dog 🌭",
+            "a kid's juice box and pretzels 🧃",
+        ],
+        "by_currency": {
+            "JPY": ["a Family Mart onigiri 🍙"],
+            "INR": ["two cups of chai at a roadside stall 🍵"],
+            "THB": ["a small mango sticky rice ice cream 🥭"],
+        },
+    },
+    {
+        "ceiling": 10,
+        "universal": [
+            "lunch at a food truck 🌮",
+            "a pint of decent ice cream 🍦",
+            "a fancy coffee with all the upgrades ☕",
+            "two cans of imported soda 🥤",
+            "a used paperback at the bookstore 📚",
+            "a movie-theater popcorn (large) 🍿",
+        ],
+        "by_currency": {
+            "KRW": ["a piping-hot bowl of kimchi jjigae 🥘"],
+            "JPY": ["convenience-store onigiri lunch with a drink 🍙"],
+            "INR": ["a proper street-thali with sweet lassi 🍛"],
+            "THB": ["pad thai with iced tea by the river 🍜"],
+            "MXN": ["tacos al pastor for two 🌮"],
+            "CNY": ["scallion-pancake breakfast for two 🥞"],
+        },
+    },
+    {
+        "ceiling": 30,
+        "universal": [
+            "a movie ticket 🎬",
+            "a tank of gas for a small car ⛽",
+            "a really nice cocktail with tip 🍸",
+            "an arcade afternoon for one 🎮",
+            "video-game DLC and a snack 🎮",
+            "a paperback at the airport bookstore 📕",
+        ],
+        "by_currency": {
+            "KRW": ["lunch + iced Americano on Garosu-gil ☕"],
+            "JPY": ["a bento and a draft beer at an izakaya 🍱"],
+            "EUR": ["a Parisian crêpe and an espresso 🥐"],
+            "GBP": ["a London pub round (one round) 🍺"],
+            "CNY": ["hot-pot solo lunch in Chengdu 🍲"],
+            "MXN": ["a long boozy taco lunch in CDMX 🌮"],
+        },
+    },
+    {
+        "ceiling": 80,
+        "universal": [
+            "dinner out for two 🍝",
+            "a basic concert ticket 🎤",
+            "a really decent bottle of wine 🍷",
+            "an Uber across town and back 🚕",
+            "the new hardcover the week it drops 📕",
+            "two seats at the Saturday matinee + popcorn 🍿",
+        ],
+        "by_currency": {
+            "KRW": ["Korean BBQ for two with extra side dishes 🥩"],
+            "JPY": ["all-you-can-eat sushi for one 🍣"],
+            "INR": ["a fancy thali for the whole family 🍛"],
+            "THB": ["rooftop dinner in Bangkok 🌃"],
+            "EUR": ["a real dinner in a small Italian trattoria 🍝"],
+            "GBP": ["a Sunday roast in a proper pub 🥩"],
+        },
+    },
+    {
+        "ceiling": 200,
+        "universal": [
+            "a week of groceries 🛒",
+            "a new pair of jeans 👖",
+            "the better headphones at Target 🎧",
+            "a half-tank of gas + a nice dinner 🚗",
+            "a board game and a tray of snacks 🎲",
+            "a thoughtful birthday gift 🎁",
+            "a really nice book + a long coffee-shop afternoon 📚",
+        ],
+        "by_currency": {
+            "JPY": ["an omakase sushi lunch in Tsukiji 🍣"],
+            "EUR": ["Eurail day pass + a great Florence dinner 🚆"],
+            "GBP": ["a fancy West End theatre ticket 🎭"],
+        },
+    },
+    {
+        "ceiling": 600,
+        "universal": [
+            "a new pair of sneakers 👟",
+            "a decent thrift-store bike 🚲",
+            "the iPad mini if it's on sale 🍎",
+            "groceries for the month 🛒",
+            "a nice weekend ski-rental setup 🎿",
+            "a wedding-guest outfit, head to toe 👗",
+        ],
+        "by_currency": {
+            "KRW": ["round-trip KTX Seoul→Busan + good food 🚄"],
+            "CNY": ["high-speed rail through Yunnan 🚄"],
+        },
+    },
+    {
+        "ceiling": 2_000,
+        "universal": [
+            "a weekend getaway ✈️",
+            "a really nice mountain bike 🚵",
+            "a used DSLR with a lens 📷",
+            "a serious gaming PC build 🎮",
+            "a half-month of San Francisco rent 🏙️",
+            "a custom-tailored suit 🤵",
+        ],
+        "by_currency": {},
+    },
+    {
+        "ceiling": 10_000,
+        "universal": [
+            "a really nice laptop 💻",
+            "an older but solid used car 🚗",
+            "a two-week trip almost anywhere 🌴",
+            "a year of an okay gym membership 💪",
+            "the world's nicest mattress 🛏️",
+            "a fancy wedding's flower budget 💐",
+        ],
+        "by_currency": {},
+    },
+    {
+        "ceiling": 40_000,
+        "universal": [
+            "a used car 🚗",
+            "a year of community college 🎓",
+            "starter wedding fund 💍",
+            "a really nice motorcycle 🏍️",
+            "a small kitchen remodel 🍳",
+        ],
+        "by_currency": {},
+    },
+    {
+        "ceiling": 200_000,
+        "universal": [
+            "a small down payment on a house 🏠",
+            "tuition at a fancy private college, for one year 🎓",
+            "a brand-new Tesla 🚙",
+            "a year of really nice rent in San Francisco 🏙️",
+        ],
+        "by_currency": {},
+    },
+    {
+        "ceiling": 5_000_000,
+        "universal": [
+            "a small house in many US cities 🏘️",
+            "a tiny used yacht ⛵",
+            "K-12 private-school tuition for one kid 🎓",
+            "more money than most people see in a lifetime 🤯",
+        ],
+        "by_currency": {},
+    },
+]
+
+# Anything above the last tier ceiling falls into this catch-all bucket.
+RYBEAR_ASTRONOMICAL = [
+    "an astonishing amount of money 🌟",
+    "old-money fortune tier 💎",
+    "rocket-launch budget 🚀",
+    "casually-buying-a-small-island money 🏝️",
 ]
 
 
-def rybear_says(amount_usd):
-    """Pick the playful purchasing-power phrase for a USD amount."""
+def rybear_says(amount_usd, from_code, to_code):
+    """Pick a playful purchasing-power phrase, stably per (amount, pair).
+
+    Phrases vary as the amount changes, but the same amount + currency
+    pair always picks the same phrase — so re-renders triggered by
+    unrelated UI changes don't make the line flicker.
+    """
     amount_usd = abs(amount_usd)
-    for ceiling, phrase in RYBEAR_TIERS:
-        if amount_usd < ceiling:
-            return phrase
-    return "an astonishing amount of money 🌟"
+    pool = RYBEAR_ASTRONOMICAL
+    for tier in RYBEAR_TIERS:
+        if amount_usd < tier["ceiling"]:
+            pool = list(tier["universal"])
+            for ccy in (from_code, to_code):
+                pool.extend(tier["by_currency"].get(ccy, []))
+            break
+    seed = f"{amount_usd:.4f}|{from_code}|{to_code}".encode()
+    return pool[zlib.crc32(seed) % len(pool)]
 
 
 def friendly_time(raw):
@@ -375,10 +569,18 @@ div.stButton > button:focus { box-shadow: 0 0 0 3px rgba(56,108,79,0.18); }
 }
 
 /* ---- Footer status indicator ---- */
+.status-block { padding-top: 4px; }
 .status-line {
     display: flex; align-items: center; gap: 9px;
     color: var(--ink-soft); font-size: 12.5px; font-weight: 500;
-    padding-top: 4px;
+}
+.status-frequency {
+    color: var(--ink-soft);
+    opacity: 0.65;
+    font-size: 11px;
+    font-style: italic;
+    padding-left: 18px;   /* line up under the text, past the dot */
+    margin-top: 2px;
 }
 .source-link {
     color: var(--ink-soft) !important;
@@ -603,7 +805,7 @@ if len(history) >= 2:
 # `from_code` is simply amount / rates[from_code].
 amount_usd = amount / rates[from_code] if rates.get(from_code) else 0
 if amount_usd > 0:
-    phrase = rybear_says(amount_usd)
+    phrase = rybear_says(amount_usd, from_code, to_code)
     st.markdown(
         f'<div class="bear-says">'
         f'<span class="bear-says-emoji">🐻</span>'
@@ -632,18 +834,24 @@ if data["live"]:
     when = friendly_time(data["updated"])
     timestamp_part = f"{when} · " if when else ""
     status_html = (
-        f'<div class="status-line">'
-        f'<span class="status-dot live"></span>'
-        f'<span>Today\'s rates · {timestamp_part}'
+        f'<div class="status-block">'
+        f'  <div class="status-line">'
+        f'    <span class="status-dot live"></span>'
+        f'    <span>Latest rates · {timestamp_part}'
         f'<a class="source-link" href="https://www.frankfurter.dev" '
         f'target="_blank" rel="noopener">Frankfurter (ECB)</a></span>'
+        f'  </div>'
+        f'  <div class="status-frequency">Updated on business days, around 8 AM MT</div>'
         f'</div>'
     )
 else:
     status_html = (
-        '<div class="status-line">'
-        '<span class="status-dot offline"></span>'
-        '<span>Offline · using built-in fallback rates</span>'
+        '<div class="status-block">'
+        '  <div class="status-line">'
+        '    <span class="status-dot offline"></span>'
+        '    <span>Offline · using built-in fallback rates</span>'
+        '  </div>'
+        '  <div class="status-frequency">Will reconnect when the network is available</div>'
         '</div>'
     )
 st.markdown(status_html, unsafe_allow_html=True)
