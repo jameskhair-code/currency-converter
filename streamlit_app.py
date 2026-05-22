@@ -71,20 +71,35 @@ def fmt(value, decimals):
 
 BEAR_SVG = """
 <svg viewBox="0 0 120 112" width="58" height="54" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="30" cy="30" r="20" fill="#B07A3E"/>
-  <circle cx="90" cy="30" r="20" fill="#B07A3E"/>
-  <circle cx="30" cy="30" r="10" fill="#E7C893"/>
-  <circle cx="90" cy="30" r="10" fill="#E7C893"/>
-  <circle cx="60" cy="64" r="42" fill="#B07A3E"/>
-  <ellipse cx="60" cy="80" rx="24" ry="19" fill="#E7C893"/>
-  <circle cx="44" cy="58" r="6.6" fill="#2E2418"/>
-  <circle cx="76" cy="58" r="6.6" fill="#2E2418"/>
-  <circle cx="46.5" cy="55.4" r="2.5" fill="#FFFFFF"/>
-  <circle cx="78.5" cy="55.4" r="2.5" fill="#FFFFFF"/>
-  <ellipse cx="60" cy="72" rx="8" ry="6" fill="#2E2418"/>
-  <circle cx="57.4" cy="69.8" r="1.9" fill="#FFFFFF" opacity="0.55"/>
-  <path d="M60 78 Q60 86 51 87 M60 78 Q60 86 69 87"
-        stroke="#2E2418" stroke-width="2.7" fill="none" stroke-linecap="round"/>
+  <!-- Ears (peeking above the head) -->
+  <circle cx="30" cy="24" r="16" fill="#E8B97D"/>
+  <circle cx="90" cy="24" r="16" fill="#E8B97D"/>
+  <circle cx="30" cy="24" r="8" fill="#FFD4C2"/>
+  <circle cx="90" cy="24" r="8" fill="#FFD4C2"/>
+  <!-- Round, friendly head -->
+  <circle cx="60" cy="64" r="40" fill="#E8B97D"/>
+  <!-- Soft muzzle -->
+  <ellipse cx="60" cy="79" rx="22" ry="16" fill="#FFEDD5"/>
+  <!-- Pink blush cheeks -->
+  <ellipse cx="32" cy="74" rx="6.5" ry="4.2" fill="#FFA8B5" opacity="0.75"/>
+  <ellipse cx="88" cy="74" rx="6.5" ry="4.2" fill="#FFA8B5" opacity="0.75"/>
+  <!-- Big shiny eyes -->
+  <circle cx="46" cy="61" r="7" fill="#2E2418"/>
+  <circle cx="74" cy="61" r="7" fill="#2E2418"/>
+  <circle cx="48.4" cy="58.6" r="2.7" fill="#FFFFFF"/>
+  <circle cx="76.4" cy="58.6" r="2.7" fill="#FFFFFF"/>
+  <circle cx="43.8" cy="63.4" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="71.8" cy="63.4" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+  <!-- Little nose -->
+  <ellipse cx="60" cy="72" rx="3.6" ry="2.8" fill="#2E2418"/>
+  <!-- Happy smile -->
+  <path d="M52 78 Q60 86 68 78"
+        stroke="#2E2418" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <!-- Floating heart -->
+  <g transform="translate(98 2) scale(0.85)">
+    <path d="M12 22 C 2 14, 0 6, 6 4 C 9 3, 12 5, 12 8 C 12 5, 15 3, 18 4 C 24 6, 22 14, 12 22 Z"
+          fill="#FF6B9B"/>
+  </g>
 </svg>
 """
 
@@ -296,5 +311,5 @@ with foot_right:
         st.rerun()             # ...and reload the page
 
 # --- The personal touch -----------------------------------------------
-st.markdown(f'<div class="credit">{PAW_SVG}<span>Made with love for Rybear</span></div>',
+st.markdown(f'<div class="credit">{PAW_SVG}<span>Rybear Tools Unlimited</span></div>',
             unsafe_allow_html=True)
