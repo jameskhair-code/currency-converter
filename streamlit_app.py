@@ -69,39 +69,12 @@ def fmt(value, decimals):
 # 2. ARTWORK  (a friendly bear, drawn as SVG so it renders everywhere)
 # ----------------------------------------------------------------------
 
-BEAR_SVG = """
-<svg viewBox="0 0 120 112" width="58" height="54" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ears (peeking above the head) -->
-  <circle cx="30" cy="24" r="16" fill="#E8B97D"/>
-  <circle cx="90" cy="24" r="16" fill="#E8B97D"/>
-  <circle cx="30" cy="24" r="8" fill="#FFD4C2"/>
-  <circle cx="90" cy="24" r="8" fill="#FFD4C2"/>
-  <!-- Round, friendly head -->
-  <circle cx="60" cy="64" r="40" fill="#E8B97D"/>
-  <!-- Soft muzzle -->
-  <ellipse cx="60" cy="79" rx="22" ry="16" fill="#FFEDD5"/>
-  <!-- Pink blush cheeks -->
-  <ellipse cx="32" cy="74" rx="6.5" ry="4.2" fill="#FFA8B5" opacity="0.75"/>
-  <ellipse cx="88" cy="74" rx="6.5" ry="4.2" fill="#FFA8B5" opacity="0.75"/>
-  <!-- Big shiny eyes -->
-  <circle cx="46" cy="61" r="7" fill="#2E2418"/>
-  <circle cx="74" cy="61" r="7" fill="#2E2418"/>
-  <circle cx="48.4" cy="58.6" r="2.7" fill="#FFFFFF"/>
-  <circle cx="76.4" cy="58.6" r="2.7" fill="#FFFFFF"/>
-  <circle cx="43.8" cy="63.4" r="1.2" fill="#FFFFFF" opacity="0.7"/>
-  <circle cx="71.8" cy="63.4" r="1.2" fill="#FFFFFF" opacity="0.7"/>
-  <!-- Little nose -->
-  <ellipse cx="60" cy="72" rx="3.6" ry="2.8" fill="#2E2418"/>
-  <!-- Happy smile -->
-  <path d="M52 78 Q60 86 68 78"
-        stroke="#2E2418" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-  <!-- Floating heart -->
-  <g transform="translate(98 2) scale(0.85)">
-    <path d="M12 22 C 2 14, 0 6, 6 4 C 9 3, 12 5, 12 8 C 12 5, 15 3, 18 4 C 24 6, 22 14, 12 22 Z"
-          fill="#FF6B9B"/>
-  </g>
-</svg>
-"""
+# A tiny 8-bit-feeling bear built from Unicode block characters.
+# Rendered as monospace text inside the brand badge.
+BEAR_ASCII = "\
+ ▄▀▀▄\n\
+▐●ᴥ●▌\n\
+ ▀▀▀▀"
 
 PAW_SVG = """
 <svg viewBox="0 0 24 24" width="15" height="15" xmlns="http://www.w3.org/2000/svg">
@@ -214,9 +187,19 @@ div.stButton > button:focus { box-shadow: 0 0 0 3px rgba(56,108,79,0.18); }
 /* ---- Brand header ---- */
 .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
 .bear-badge {
-    background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px;
-    padding: 9px 9px 5px 9px; display: flex; flex-shrink: 0;
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 10px 14px 8px 14px; display: flex; flex-shrink: 0;
     box-shadow: 0 8px 20px -10px rgba(38,34,26,0.30);
+}
+.bear-ascii {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: #6B4423;            /* warm coffee brown, reads as bear-fur */
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0;
+    white-space: pre;
+    margin: 0;
 }
 .eyebrow {
     color: var(--green); font-size: 12px; font-weight: 700;
@@ -284,7 +267,7 @@ def set_pair(from_code, to_code):
 # --- Brand header: friendly bear + title ------------------------------
 st.markdown(f"""
 <div class="brand">
-    <div class="bear-badge">{BEAR_SVG}</div>
+    <div class="bear-badge"><div class="bear-ascii">{BEAR_ASCII}</div></div>
     <div>
         <div class="eyebrow"><span class="bar"></span>Live FX</div>
         <div class="app-title">Rybear's<br>Currency Converter</div>
