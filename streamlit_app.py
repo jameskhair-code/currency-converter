@@ -87,15 +87,25 @@ def friendly_time(raw):
 # ----------------------------------------------------------------------
 
 # The brand bear lives in ./static/bear.png. We read it at startup,
-# base64-encode it, and inline it as a data: URI in the brand <img>.
-# This avoids Streamlit's static-serving quirks and ignores MIME
-# extension mismatches — the file is JPEG bytes despite the .png name.
+# detect its real format from the magic bytes (so PNG/JPEG/WEBP all
+# work even if the filename's extension lies), and inline it as a
+# data: URI in the brand <img>. This sidesteps Streamlit's
+# static-serving quirks entirely.
+def _detect_image_mime(data: bytes) -> str:
+    if data.startswith(b"\x89PNG"):           return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):      return "image/jpeg"
+    if data.startswith(b"GIF8"):              return "image/gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":  return "image/webp"
+    return "image/png"  # reasonable default
+
+
 @st.cache_data(show_spinner=False)
 def load_bear_data_uri():
     p = Path(__file__).parent / "static" / "bear.png"
     if not p.exists():
         return ""
-    return "data:image/jpeg;base64," + base64.b64encode(p.read_bytes()).decode()
+    data = p.read_bytes()
+    return f"data:{_detect_image_mime(data)};base64," + base64.b64encode(data).decode()
 
 BEAR_IMG = load_bear_data_uri()
 
