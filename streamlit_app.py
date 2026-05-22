@@ -34,24 +34,42 @@ SLC_TZ = ZoneInfo("America/Denver")
 st.set_page_config(page_title="Rybear's Currency Converter",
                    page_icon="🐻", layout="centered")
 
-# code -> display name, symbol, and how many decimals make sense
+# code -> flag, display name, symbol, decimals. Order here is also the
+# dropdown order — most familiar to Rybear first, then the rest.
+# All listed codes must be supported by Frankfurter (ECB tracks ~30).
 CURRENCIES = {
-    "USD": {"name": "US Dollar",         "symbol": "$",  "decimals": 2},
-    "KRW": {"name": "South Korean Won",  "symbol": "₩",  "decimals": 0},
-    "JPY": {"name": "Japanese Yen",      "symbol": "¥",  "decimals": 0},
-    "EUR": {"name": "Euro",              "symbol": "€",  "decimals": 2},
-    "GBP": {"name": "British Pound",     "symbol": "£",  "decimals": 2},
-    "CAD": {"name": "Canadian Dollar",   "symbol": "$",  "decimals": 2},
-    "AUD": {"name": "Australian Dollar", "symbol": "$",  "decimals": 2},
-    "CNY": {"name": "Chinese Yuan",      "symbol": "¥",  "decimals": 2},
-    "MXN": {"name": "Mexican Peso",      "symbol": "$",  "decimals": 2},
-    "INR": {"name": "Indian Rupee",      "symbol": "₹",  "decimals": 2},
+    "USD": {"flag": "🇺🇸", "name": "US Dollar",          "symbol": "$",  "decimals": 2},
+    "KRW": {"flag": "🇰🇷", "name": "South Korean Won",   "symbol": "₩",  "decimals": 0},
+    "JPY": {"flag": "🇯🇵", "name": "Japanese Yen",       "symbol": "¥",  "decimals": 0},
+    "EUR": {"flag": "🇪🇺", "name": "Euro",               "symbol": "€",  "decimals": 2},
+    "GBP": {"flag": "🇬🇧", "name": "British Pound",      "symbol": "£",  "decimals": 2},
+    "CAD": {"flag": "🇨🇦", "name": "Canadian Dollar",    "symbol": "$",  "decimals": 2},
+    "AUD": {"flag": "🇦🇺", "name": "Australian Dollar",  "symbol": "$",  "decimals": 2},
+    "CNY": {"flag": "🇨🇳", "name": "Chinese Yuan",       "symbol": "¥",  "decimals": 2},
+    "MXN": {"flag": "🇲🇽", "name": "Mexican Peso",       "symbol": "$",  "decimals": 2},
+    "INR": {"flag": "🇮🇳", "name": "Indian Rupee",       "symbol": "₹",  "decimals": 2},
+    "CHF": {"flag": "🇨🇭", "name": "Swiss Franc",        "symbol": "Fr", "decimals": 2},
+    "HKD": {"flag": "🇭🇰", "name": "Hong Kong Dollar",   "symbol": "$",  "decimals": 2},
+    "SGD": {"flag": "🇸🇬", "name": "Singapore Dollar",   "symbol": "$",  "decimals": 2},
+    "THB": {"flag": "🇹🇭", "name": "Thai Baht",          "symbol": "฿",  "decimals": 2},
+    "NZD": {"flag": "🇳🇿", "name": "New Zealand Dollar", "symbol": "$",  "decimals": 2},
+    "BRL": {"flag": "🇧🇷", "name": "Brazilian Real",     "symbol": "R$", "decimals": 2},
+    "SEK": {"flag": "🇸🇪", "name": "Swedish Krona",      "symbol": "kr", "decimals": 2},
+    "NOK": {"flag": "🇳🇴", "name": "Norwegian Krone",    "symbol": "kr", "decimals": 2},
+    "DKK": {"flag": "🇩🇰", "name": "Danish Krone",       "symbol": "kr", "decimals": 2},
+    "ZAR": {"flag": "🇿🇦", "name": "South African Rand", "symbol": "R",  "decimals": 2},
+    "PLN": {"flag": "🇵🇱", "name": "Polish Złoty",       "symbol": "zł", "decimals": 2},
+    "TRY": {"flag": "🇹🇷", "name": "Turkish Lira",       "symbol": "₺",  "decimals": 2},
 }
 
 # Used only if the live request fails — approximate, USD-based.
+# Doesn't need to be precise: it's a "never fully break" safety net.
 FALLBACK_RATES = {
-    "USD": 1.0, "KRW": 1380.0, "JPY": 156.0, "EUR": 0.92, "GBP": 0.79,
-    "CAD": 1.37, "AUD": 1.52, "CNY": 7.24, "MXN": 18.6, "INR": 83.4,
+    "USD": 1.0,   "KRW": 1380.0, "JPY": 156.0, "EUR": 0.92,  "GBP": 0.79,
+    "CAD": 1.37,  "AUD": 1.52,   "CNY": 7.24,  "MXN": 18.6,  "INR": 83.4,
+    "CHF": 0.88,  "HKD": 7.81,   "SGD": 1.34,  "THB": 36.0,  "NZD": 1.65,
+    "BRL": 5.10,  "SEK": 10.60,  "NOK": 10.70, "DKK": 6.90,  "ZAR": 18.50,
+    "PLN": 3.95,  "TRY": 32.00,
 }
 
 
@@ -385,7 +403,8 @@ amount = st.number_input(
 
 # --- From / Swap / To -------------------------------------------------
 def label_for(code):
-    return f"{code} — {CURRENCIES[code]['name']}"
+    info = CURRENCIES[code]
+    return f"{info['flag']}  {code} — {info['name']}"
 
 col_from, col_swap, col_to = st.columns([5, 1, 5])
 
