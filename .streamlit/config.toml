@@ -7,3 +7,8 @@ backgroundColor           = "#EBE3D2"   # page beige
 secondaryBackgroundColor  = "#FBF8F0"   # cream — inputs, cards, info banners
 textColor                 = "#26221A"   # dark cocoa — body/label text
 font                      = "sans serif"
+
+[server]
+# Serve files from ./static/ at /app/static/, so we can reference
+# the bear PNG from inline HTML.
+enableStaticServing = true

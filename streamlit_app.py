@@ -66,15 +66,13 @@ def fmt(value, decimals):
 
 
 # ----------------------------------------------------------------------
-# 2. ARTWORK  (a friendly bear, drawn as SVG so it renders everywhere)
+# 2. ARTWORK
 # ----------------------------------------------------------------------
 
-# A tiny 8-bit-feeling bear built from Unicode block characters.
-# Rendered as monospace text inside the brand badge.
-BEAR_ASCII = "\
- ▄ ▄ \n\
-▐●ᴥ●▌\n\
- ▀▀▀"
+# The brand bear — a PNG served from ./static/ via Streamlit's static
+# file server (enabled in .streamlit/config.toml). To swap the bear,
+# just drop a new bear.png in the static/ folder.
+BEAR_IMG = "/app/static/bear.png"
 
 PAW_SVG = """
 <svg viewBox="0 0 24 24" width="15" height="15" xmlns="http://www.w3.org/2000/svg">
@@ -185,21 +183,37 @@ div.stButton > button:focus { box-shadow: 0 0 0 3px rgba(56,108,79,0.18); }
 }
 
 /* ---- Brand header ---- */
-.brand { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
-.bear-badge {
-    background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px;
-    padding: 10px 14px 8px 14px; display: flex; flex-shrink: 0;
-    box-shadow: 0 8px 20px -10px rgba(38,34,26,0.30);
+.brand { display: flex; align-items: center; gap: 18px; margin-bottom: 4px; }
+.bear-img {
+    width: 96px; height: 96px;
+    border-radius: 22px;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 10px 24px -12px rgba(38,34,26,0.40);
 }
-.bear-ascii {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    color: #6B4423;            /* warm coffee brown, reads as bear-fur */
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.05;
-    letter-spacing: 0;
-    white-space: pre;
-    margin: 0;
+
+/* ---- Footer status indicator ---- */
+.status-line {
+    display: flex; align-items: center; gap: 9px;
+    color: var(--ink-soft); font-size: 12.5px; font-weight: 500;
+    padding-top: 4px;
+}
+.status-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+}
+.status-dot.live {
+    background: #2BA76B;
+    box-shadow: 0 0 0 3px rgba(43,167,107,0.20);
+    animation: livepulse 2.2s ease-in-out infinite;
+}
+.status-dot.offline {
+    background: #D97757;
+    box-shadow: 0 0 0 3px rgba(217,119,87,0.20);
+}
+@keyframes livepulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(43,167,107,0.20); }
+    50%      { box-shadow: 0 0 0 7px rgba(43,167,107,0.06); }
 }
 .eyebrow {
     color: var(--green); font-size: 12px; font-weight: 700;
@@ -267,7 +281,7 @@ def set_pair(from_code, to_code):
 # --- Brand header: friendly bear + title ------------------------------
 st.markdown(f"""
 <div class="brand">
-    <div class="bear-badge"><div class="bear-ascii">{BEAR_ASCII}</div></div>
+    <img class="bear-img" src="{BEAR_IMG}" alt="Rybear">
     <div>
         <div class="eyebrow"><span class="bar"></span>Live FX</div>
         <div class="app-title">Rybear's<br>Currency Converter</div>
@@ -279,14 +293,6 @@ st.write("")
 
 data = get_rates()
 rates = data["rates"]
-
-# Status banner — honest about where the numbers came from
-if data["live"]:
-    st.success("Live exchange rates loaded.")
-else:
-    st.warning("Couldn't reach the live rates server — using built-in offline rates.")
-
-st.write("")
 
 # --- Amount -----------------------------------------------------------
 amount = st.number_input(
@@ -356,10 +362,22 @@ for col, (f, t) in zip(cols, quick):
 st.write("")
 foot_left, foot_right = st.columns([3, 1])
 with foot_left:
-    if data["updated"]:
-        st.caption(f"Rates as of {data['updated']}")
+    if data["live"]:
+        status_label = f"Live rates · {data['updated']}" if data["updated"] else "Live rates · open.er-api.com"
+        status_html = (
+            f'<div class="status-line">'
+            f'<span class="status-dot live"></span>'
+            f'<span>{status_label}</span>'
+            f'</div>'
+        )
     else:
-        st.caption("Source: open.er-api.com")
+        status_html = (
+            '<div class="status-line">'
+            '<span class="status-dot offline"></span>'
+            '<span>Offline · using built-in fallback rates</span>'
+            '</div>'
+        )
+    st.markdown(status_html, unsafe_allow_html=True)
 with foot_right:
     if st.button("↻ Refresh", use_container_width=True):
         get_rates.clear()      # drop the cached result
