@@ -259,7 +259,7 @@ PAW_SVG = """
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Noto+Color+Emoji&display=swap');
 
 /* ---- Palette tokens (kept here so they're easy to tweak) ---- */
 :root {
@@ -273,8 +273,22 @@ st.markdown("""
 }
 
 .stApp { background: var(--bg); }
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; color: var(--ink); }
+/* Font stack ends with 'Noto Color Emoji' so flag emojis (🇺🇸 etc.)
+   render on Windows, whose default Segoe UI Emoji omits flag glyphs.
+   The browser does per-character fallback: letters use 'DM Sans',
+   emoji codepoints fall through to the webfont. */
+html, body, [class*="css"] {
+    font-family: 'DM Sans', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+    color: var(--ink);
+}
 h1, h2, h3 { font-family: 'Fraunces', serif !important; color: var(--ink); }
+/* Force the emoji-capable stack inside the selectbox/dropdown internals,
+   which Streamlit otherwise styles with its own font. */
+div[data-baseweb="select"] *,
+div[data-baseweb="popover"] li,
+div[data-baseweb="popover"] li * {
+    font-family: 'DM Sans', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif !important;
+}
 
 /* ---- Readable labels & captions ---- */
 [data-testid="stWidgetLabel"] p,
