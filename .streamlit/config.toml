@@ -1,0 +1,9 @@
+[theme]
+# Lock the app to a warm light theme so inputs and text don't invert
+# when a user's browser is in dark mode.
+base                      = "light"
+primaryColor              = "#386C4F"   # accent green
+backgroundColor           = "#EBE3D2"   # page beige
+secondaryBackgroundColor  = "#FBF8F0"   # cream — inputs, cards, info banners
+textColor                 = "#26221A"   # dark cocoa — body/label text
+font                      = "sans serif"

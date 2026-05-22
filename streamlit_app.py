@@ -71,20 +71,35 @@ def fmt(value, decimals):
 
 BEAR_SVG = """
 <svg viewBox="0 0 120 112" width="58" height="54" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="30" cy="30" r="20" fill="#B07A3E"/>
-  <circle cx="90" cy="30" r="20" fill="#B07A3E"/>
-  <circle cx="30" cy="30" r="10" fill="#E7C893"/>
-  <circle cx="90" cy="30" r="10" fill="#E7C893"/>
-  <circle cx="60" cy="64" r="42" fill="#B07A3E"/>
-  <ellipse cx="60" cy="80" rx="24" ry="19" fill="#E7C893"/>
-  <circle cx="44" cy="58" r="6.6" fill="#2E2418"/>
-  <circle cx="76" cy="58" r="6.6" fill="#2E2418"/>
-  <circle cx="46.5" cy="55.4" r="2.5" fill="#FFFFFF"/>
-  <circle cx="78.5" cy="55.4" r="2.5" fill="#FFFFFF"/>
-  <ellipse cx="60" cy="72" rx="8" ry="6" fill="#2E2418"/>
-  <circle cx="57.4" cy="69.8" r="1.9" fill="#FFFFFF" opacity="0.55"/>
-  <path d="M60 78 Q60 86 51 87 M60 78 Q60 86 69 87"
-        stroke="#2E2418" stroke-width="2.7" fill="none" stroke-linecap="round"/>
+  <!-- Ears (peeking above the head) -->
+  <circle cx="30" cy="24" r="16" fill="#E8B97D"/>
+  <circle cx="90" cy="24" r="16" fill="#E8B97D"/>
+  <circle cx="30" cy="24" r="8" fill="#FFD4C2"/>
+  <circle cx="90" cy="24" r="8" fill="#FFD4C2"/>
+  <!-- Round, friendly head -->
+  <circle cx="60" cy="64" r="40" fill="#E8B97D"/>
+  <!-- Soft muzzle -->
+  <ellipse cx="60" cy="79" rx="22" ry="16" fill="#FFEDD5"/>
+  <!-- Pink blush cheeks -->
+  <ellipse cx="32" cy="74" rx="6.5" ry="4.2" fill="#FFA8B5" opacity="0.75"/>
+  <ellipse cx="88" cy="74" rx="6.5" ry="4.2" fill="#FFA8B5" opacity="0.75"/>
+  <!-- Big shiny eyes -->
+  <circle cx="46" cy="61" r="7" fill="#2E2418"/>
+  <circle cx="74" cy="61" r="7" fill="#2E2418"/>
+  <circle cx="48.4" cy="58.6" r="2.7" fill="#FFFFFF"/>
+  <circle cx="76.4" cy="58.6" r="2.7" fill="#FFFFFF"/>
+  <circle cx="43.8" cy="63.4" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="71.8" cy="63.4" r="1.2" fill="#FFFFFF" opacity="0.7"/>
+  <!-- Little nose -->
+  <ellipse cx="60" cy="72" rx="3.6" ry="2.8" fill="#2E2418"/>
+  <!-- Happy smile -->
+  <path d="M52 78 Q60 86 68 78"
+        stroke="#2E2418" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <!-- Floating heart -->
+  <g transform="translate(98 2) scale(0.85)">
+    <path d="M12 22 C 2 14, 0 6, 6 4 C 9 3, 12 5, 12 8 C 12 5, 15 3, 18 4 C 24 6, 22 14, 12 22 Z"
+          fill="#FF6B9B"/>
+  </g>
 </svg>
 """
 
@@ -105,64 +120,136 @@ PAW_SVG = """
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
 
-.stApp { background: #EBE3D2; }
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-h1, h2, h3 { font-family: 'Fraunces', serif !important; color: #26221A; }
+/* ---- Palette tokens (kept here so they're easy to tweak) ---- */
+:root {
+    --bg:        #EBE3D2;   /* page */
+    --surface:   #FBF8F0;   /* inputs / cards */
+    --border:    #D9CFB5;   /* warm tan border */
+    --ink:       #26221A;   /* primary text */
+    --ink-soft:  #5C5444;   /* secondary text / captions */
+    --green:     #386C4F;   /* accent */
+    --green-dk:  #2A5440;   /* result card */
+}
 
-/* Buttons — warm green, consistent across the app */
+.stApp { background: var(--bg); }
+html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; color: var(--ink); }
+h1, h2, h3 { font-family: 'Fraunces', serif !important; color: var(--ink); }
+
+/* ---- Readable labels & captions ---- */
+[data-testid="stWidgetLabel"] p,
+.stSelectbox label, .stNumberInput label {
+    color: var(--ink) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    letter-spacing: 0.02em;
+}
+[data-testid="stCaptionContainer"], .stCaption, .stCaption p {
+    color: var(--ink-soft) !important;
+    font-weight: 500;
+}
+
+/* ---- Input fields: cream surface, warm border, dark ink ---- */
+.stNumberInput div[data-baseweb="input"],
+.stNumberInput div[data-baseweb="input"] > div,
+div[data-baseweb="select"] > div {
+    background: var(--surface) !important;
+    border: 1.5px solid var(--border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 0 rgba(38,34,26,0.03);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.stNumberInput input,
+div[data-baseweb="select"] input,
+div[data-baseweb="select"] div[role="combobox"] {
+    background: transparent !important;
+    color: var(--ink) !important;
+    font-weight: 500;
+}
+.stNumberInput div[data-baseweb="input"]:focus-within,
+div[data-baseweb="select"] > div:focus-within {
+    border-color: var(--green) !important;
+    box-shadow: 0 0 0 3px rgba(56,108,79,0.18) !important;
+}
+/* Number input +/- steppers */
+.stNumberInput button {
+    background: var(--surface) !important;
+    color: var(--green) !important;
+    border-left: 1.5px solid var(--border) !important;
+}
+/* Selectbox dropdown menu */
+div[data-baseweb="popover"] li {
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+}
+div[data-baseweb="popover"] li:hover {
+    background: #F2EAD6 !important;
+}
+
+/* ---- Buttons: cream chip with green ink ---- */
 div.stButton > button {
-    background: #FBF8F0;
-    color: #2A5440;
-    border: 1.5px solid #E0D6BF;
+    background: var(--surface);
+    color: var(--green);
+    border: 1.5px solid var(--border);
     border-radius: 10px;
     font-weight: 600;
+    padding: 0.45rem 0.9rem;
     transition: all 0.15s ease;
+    box-shadow: 0 1px 0 rgba(38,34,26,0.03);
 }
 div.stButton > button:hover {
-    border-color: #386C4F;
-    color: #386C4F;
+    border-color: var(--green);
+    color: var(--green);
+    background: #F5EFDD;
+}
+div.stButton > button:focus { box-shadow: 0 0 0 3px rgba(56,108,79,0.18); }
+
+/* ---- Status banners: soften Streamlit's defaults to fit the palette ---- */
+[data-testid="stAlert"] {
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
 }
 
-div[data-baseweb="select"] > div, .stNumberInput div[data-baseweb="input"] {
-    border-radius: 12px !important;
-}
-
-/* Brand header — bear badge + title */
+/* ---- Brand header ---- */
 .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 4px; }
 .bear-badge {
-    background: #FBF8F0; border: 1.5px solid #E0D6BF; border-radius: 20px;
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px;
     padding: 9px 9px 5px 9px; display: flex; flex-shrink: 0;
     box-shadow: 0 8px 20px -10px rgba(38,34,26,0.30);
 }
 .eyebrow {
-    color: #386C4F; font-size: 12px; font-weight: 700;
+    color: var(--green); font-size: 12px; font-weight: 700;
     letter-spacing: 0.14em; text-transform: uppercase;
     display: flex; align-items: center; gap: 8px; margin-bottom: 3px;
 }
-.eyebrow .bar { width: 22px; height: 2px; background: #386C4F; display: inline-block; }
+.eyebrow .bar { width: 22px; height: 2px; background: var(--green); display: inline-block; }
 .app-title {
     font-family: 'Fraunces', serif; font-size: 33px; font-weight: 600;
-    color: #26221A; line-height: 1.06; letter-spacing: -0.02em;
+    color: var(--ink); line-height: 1.06; letter-spacing: -0.02em;
 }
 
-/* The big green result card */
-.result-card { background: #2A5440; border-radius: 16px; padding: 22px 24px; margin: 6px 0 4px 0; }
+/* ---- The big green result card ---- */
+.result-card {
+    background: var(--green-dk); border-radius: 16px;
+    padding: 22px 24px; margin: 6px 0 4px 0;
+    box-shadow: 0 12px 28px -16px rgba(42,84,64,0.55);
+}
 .result-label {
-    color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700;
+    color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 700;
     letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px;
 }
 .result-amount { font-family: 'Fraunces', serif; color: #fff; font-size: 40px; font-weight: 600; line-height: 1; }
-.result-code { color: rgba(255,255,255,0.7); font-size: 17px; font-weight: 600; }
+.result-code { color: rgba(255,255,255,0.78); font-size: 17px; font-weight: 600; }
 .result-rate {
     margin-top: 10px; font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; color: rgba(255,255,255,0.6);
+    font-size: 12px; color: rgba(255,255,255,0.72);
 }
 
-/* Footer credit — the little personal touch */
+/* ---- Footer credit ---- */
 .credit {
-    text-align: center; margin-top: 16px; color: #7A7160; font-size: 12.5px;
+    text-align: center; margin-top: 16px; color: var(--ink-soft); font-size: 12.5px;
+    font-weight: 500;
     display: flex; align-items: center; justify-content: center; gap: 7px;
 }
 </style>
@@ -296,5 +383,5 @@ with foot_right:
         st.rerun()             # ...and reload the page
 
 # --- The personal touch -----------------------------------------------
-st.markdown(f'<div class="credit">{PAW_SVG}<span>Made with love for Rybear</span></div>',
+st.markdown(f'<div class="credit">{PAW_SVG}<span>Rybear Tools Unlimited</span></div>',
             unsafe_allow_html=True)
