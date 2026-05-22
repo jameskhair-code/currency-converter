@@ -7,9 +7,11 @@ Run it locally with:
     pip install streamlit requests
     streamlit run streamlit_app.py
 
-Live rates come from open.er-api.com (no API key needed).
-If the internet is unavailable, the app falls back to built-in
-approximate rates so it never fully breaks.
+Rates come from the European Central Bank via the free, no-key
+Frankfurter API (api.frankfurter.dev). ECB publishes updated rates
+every business day around 16:00 CET. If the network is down or
+the API hiccups, the app falls back to built-in approximate rates
+so it never fully breaks.
 """
 
 import base64
@@ -55,15 +57,26 @@ FALLBACK_RATES = {
 
 @st.cache_data(ttl=3600)  # remember the result for 1 hour so we don't hammer the API
 def get_rates():
-    """Fetch live USD-based exchange rates, with a graceful offline fallback."""
+    """Fetch the ECB's latest rates from Frankfurter and normalize to USD-base.
+
+    Frankfurter quotes everything against EUR by default; we divide through
+    by USD-per-EUR so callers can keep using the cross-rate formula
+    `rate(A -> B) = rates[B] / rates[A]` unchanged. Falls back to the
+    built-in approximate rates if the network is unavailable.
+    """
     try:
-        resp = requests.get("https://open.er-api.com/v6/latest/USD", timeout=8)
+        resp = requests.get("https://api.frankfurter.dev/v1/latest", timeout=8)
         data = resp.json()
-        if data.get("result") == "success":
+        eur_rates = data.get("rates")
+        if eur_rates and "USD" in eur_rates:
+            eur_rates["EUR"] = 1.0  # base isn't included in the response
+            usd_per_eur = eur_rates["USD"]
+            usd_rates = {code: value / usd_per_eur for code, value in eur_rates.items()}
+            usd_rates["USD"] = 1.0
             return {
-                "rates": data["rates"],
-                "updated": data.get("time_last_update_utc", ""),
-                "live": True,
+                "rates":   usd_rates,
+                "updated": data.get("date", ""),   # ISO date, e.g. "2026-05-22"
+                "live":    True,
             }
     except Exception:
         pass  # network down, blocked, or API hiccup — fall through
@@ -76,13 +89,26 @@ def fmt(value, decimals):
 
 
 def friendly_time(raw):
-    """Convert the API's UTC timestamp into Salt Lake City local time.
-    'Fri, 22 May 2026 00:02:32 +0000' -> 'Thu, May 21 · 6:02 PM MDT'.
-    Outside DST it'll read 'MST' — handled automatically by zoneinfo."""
+    """Convert an API timestamp/date into Salt Lake City local time.
+
+    Frankfurter returns an ISO date like '2026-05-22' (no time). ECB
+    publishes around 16:00 CET, so we anchor the date there and convert
+    to SLC time — typically lands around 8 AM MDT/MST.
+
+    Older callers may pass an RFC 2822 timestamp ('Fri, 22 May 2026
+    00:02:32 +0000'); we handle that too so the function is robust to
+    a future source swap.
+    """
     if not raw:
         return ""
     try:
-        dt = parsedate_to_datetime(raw).astimezone(SLC_TZ)
+        if len(raw) == 10 and raw.count("-") == 2:
+            from datetime import datetime, time as dtime
+            day = datetime.strptime(raw, "%Y-%m-%d")
+            ecb_publish = day.replace(hour=16, minute=0, tzinfo=ZoneInfo("Europe/Berlin"))
+            dt = ecb_publish.astimezone(SLC_TZ)
+        else:
+            dt = parsedate_to_datetime(raw).astimezone(SLC_TZ)
         date_part = dt.strftime("%a, %b %d").replace(" 0", " ")  # drop leading 0 on day
         time_part = dt.strftime("%I:%M %p").lstrip("0")           # drop leading 0 on hour
         return f"{date_part} · {time_part} {dt.strftime('%Z')}"
@@ -240,6 +266,17 @@ div.stButton > button:focus { box-shadow: 0 0 0 3px rgba(56,108,79,0.18); }
     display: flex; align-items: center; gap: 9px;
     color: var(--ink-soft); font-size: 12.5px; font-weight: 500;
     padding-top: 4px;
+}
+.source-link {
+    color: var(--ink-soft) !important;
+    text-decoration: underline;
+    text-decoration-color: rgba(38,34,26,0.25);
+    text-underline-offset: 2px;
+    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+.source-link:hover {
+    color: var(--green) !important;
+    text-decoration-color: var(--green);
 }
 .status-dot {
     width: 9px; height: 9px; border-radius: 50%;
@@ -408,11 +445,13 @@ for col, (f, t) in zip(cols, quick):
 st.write("")
 if data["live"]:
     when = friendly_time(data["updated"])
-    status_label = f"Today's rates · {when}" if when else "Today's rates · open.er-api.com"
+    timestamp_part = f"{when} · " if when else ""
     status_html = (
         f'<div class="status-line">'
         f'<span class="status-dot live"></span>'
-        f'<span>{status_label}</span>'
+        f'<span>Today\'s rates · {timestamp_part}'
+        f'<a class="source-link" href="https://www.frankfurter.dev" '
+        f'target="_blank" rel="noopener">Frankfurter (ECB)</a></span>'
         f'</div>'
     )
 else:
