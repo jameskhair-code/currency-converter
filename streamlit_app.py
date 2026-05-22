@@ -326,7 +326,7 @@ st.markdown(f"""
 <div class="brand">
     <img class="bear-img" src="{BEAR_IMG}" alt="Rybear">
     <div>
-        <div class="eyebrow"><span class="bar"></span>Live FX</div>
+        <div class="eyebrow"><span class="bar"></span>FX Rates</div>
         <div class="app-title">Rybear's<br>Currency Converter</div>
     </div>
 </div>
@@ -408,7 +408,7 @@ for col, (f, t) in zip(cols, quick):
 st.write("")
 if data["live"]:
     when = friendly_time(data["updated"])
-    status_label = f"Live rates · {when}" if when else "Live rates · open.er-api.com"
+    status_label = f"Today's rates · {when}" if when else "Today's rates · open.er-api.com"
     status_html = (
         f'<div class="status-line">'
         f'<span class="status-dot live"></span>'
