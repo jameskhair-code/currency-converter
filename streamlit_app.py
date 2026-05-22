@@ -157,6 +157,36 @@ def fmt(value, decimals):
     return f"{value:,.{decimals}f}"
 
 
+# Tiers for the "Rybear says…" callout. First entry whose ceiling is
+# greater than the USD-equivalent amount wins. Keep these kid-friendly
+# and concrete — the goal is to translate an abstract number into a
+# mental picture.
+RYBEAR_TIERS = [
+    (0.25,       "not even a piece of gum 🍬"),
+    (1,          "a high-five worth of money ✋"),
+    (3,          "a candy bar 🍫"),
+    (10,         "lunch at a food truck 🌮"),
+    (30,         "a movie ticket 🎬"),
+    (80,         "dinner out for two 🍝"),
+    (200,        "a week of groceries 🛒"),
+    (600,        "a new pair of sneakers 👟"),
+    (2_000,      "a weekend getaway ✈️"),
+    (10_000,     "a really nice laptop 💻"),
+    (40_000,     "a used car 🚗"),
+    (200_000,    "a small down payment on a house 🏠"),
+    (5_000_000,  "more money than most people see in a lifetime 🤯"),
+]
+
+
+def rybear_says(amount_usd):
+    """Pick the playful purchasing-power phrase for a USD amount."""
+    amount_usd = abs(amount_usd)
+    for ceiling, phrase in RYBEAR_TIERS:
+        if amount_usd < ceiling:
+            return phrase
+    return "an astonishing amount of money 🌟"
+
+
 def friendly_time(raw):
     """Convert an API timestamp/date into Salt Lake City local time.
 
@@ -392,6 +422,24 @@ div.stButton > button:focus { box-shadow: 0 0 0 3px rgba(56,108,79,0.18); }
     font-size: 12px; color: rgba(255,255,255,0.72);
 }
 
+/* ---- "Rybear says…" callout ---- */
+.bear-says {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: rgba(56,108,79,0.07);
+    border-left: 3px solid var(--green);
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--ink);
+    display: flex; align-items: center; gap: 12px;
+    line-height: 1.4;
+}
+.bear-says-emoji { font-size: 22px; flex-shrink: 0; }
+.bear-says strong {
+    color: var(--green);
+    font-weight: 700;
+}
+
 /* ---- 30-day sparkline (sits inline under the result card) ---- */
 .sparkline-row {
     display: flex; align-items: center; gap: 14px;
@@ -531,6 +579,21 @@ if len(history) >= 2:
         f'  <span class="sparkline-svg">{spark_svg}</span>'
         f'  <span class="sparkline-pct" style="color:{spark_color};">'
         f'{arrow} {abs(pct_change):.2f}%</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+# --- Rybear says... ---------------------------------------------------
+# Translate the converted amount into a concrete mental picture via
+# its USD equivalent. Rates are USD-based, so USD value of `amount` of
+# `from_code` is simply amount / rates[from_code].
+amount_usd = amount / rates[from_code] if rates.get(from_code) else 0
+if amount_usd > 0:
+    phrase = rybear_says(amount_usd)
+    st.markdown(
+        f'<div class="bear-says">'
+        f'<span class="bear-says-emoji">🐻</span>'
+        f'<span><strong>Rybear says</strong> &mdash; that\'s {phrase}!</span>'
         f'</div>',
         unsafe_allow_html=True,
     )
